@@ -9,15 +9,15 @@ This repo contains:
 - `benchmark.py`      — micro-benchmarks for each crypto operation  
 
 ## 📂 Directory Structure
-anon-tokens-project/
-├── README.md
-├── issuer.py
-├── user.py
-├── verifier.py
-├── benchmark.py
-├── keys.py
-└── utils/
-└── crypto.py
+anon-tokens-project/  
+├── README.md  
+├── issuer.py  
+├── user.py  
+├── verifier.py  
+├── benchmark.py  
+├── keys.py  
+└── utils/  
+└── crypto.py  
 
 
 ## 🚀 Quickstart
