@@ -30,10 +30,12 @@ anon-tokens-project/
    pip install pycryptodome
 
 2. Run the full flow:
+    ```python
     python user.py       # issues & redeems a token
     python verifier.py   # verifies signature & decrypts metadata
 
 3. Benchmark performance:
+    ```python
     python benchmark.py
 
 ## 📖 Code Overview
