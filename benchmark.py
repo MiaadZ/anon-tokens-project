@@ -1,55 +1,63 @@
-# benchmark.py
 import timeit
-from keys import pubkey, privkey
-from utils.crypto import blind_message, sign_blinded, unblind_signature, encrypt_metadata, decrypt_metadata
+from Crypto.Random import get_random_bytes
 
-# Prepare a sample message and metadata
-MESSAGE  = b'user-token-123'
-METADATA = {'type_bit': 1, 'timestamp': '2025-08-07'}
+# Import the components from our final code structure
+from issuer import Issuer
+from user import User
+from verifier import Verifier
+from utils.crypto import (
+    encrypt_metadata,
+    decrypt_metadata,
+    blind_message,
+    raw_blind_sign,
+    unblind_signature,
+)
 
-# 1. Blinding
-def bench_blind():
-    blind_message(MESSAGE, pubkey)
+# --- SETUP ---
+# Create instances of all participants
+issuer = Issuer()
+user = User(issuer.public_key)
+verifier = Verifier(issuer.public_key)
 
-# 2. Blind‐signature generation (on a single blinded value)
-blinded, _ = blind_message(MESSAGE, pubkey)
-def bench_sign():
-    sign_blinded(blinded, privkey)
+# Prepare the data needed for one full token issuance cycle
+message = get_random_bytes(32)
+metadata = {'user_type': 'premium', 'risk_score': 15}
 
-# 3. Unblinding (on a fresh signed blind)
-s_blinded = sign_blinded(blinded, privkey)
-def bench_unblind():
-    _, r = blind_message(MESSAGE, pubkey)
-    unblind_signature(s_blinded, r, pubkey)
+# Perform one full run to get all the necessary intermediate values
+blinded_m, r = blind_message(message, user.issuer_pubkey)
+blinded_sig = raw_blind_sign(issuer.key, blinded_m)
+signature = unblind_signature(blinded_sig, r, user.issuer_pubkey)
+enc_meta_full = encrypt_metadata(metadata)
+# The key is needed for the decryption benchmark
+secret_key = enc_meta_full['key'] 
+enc_meta_for_user = {
+    "ciphertext": enc_meta_full["ciphertext"],
+    "nonce": enc_meta_full["nonce"],
+    "tag": enc_meta_full["tag"],
+}
 
-# 4. Raw verification
-# First, get a valid signature
-blinded, r = blind_message(MESSAGE, pubkey)
-s_blinded = sign_blinded(blinded, privkey)
-sig      = unblind_signature(s_blinded, r, pubkey)
-def bench_verify():
-    m_int   = int.from_bytes(MESSAGE, 'big')
-    pow(sig, pubkey.e, pubkey.n) == m_int
+# --- BENCHMARKING ---
+# Number of repetitions for each measurement
+N_RUNS = 100
 
-# 5. Metadata encryption
-def bench_encrypt():
-    encrypt_metadata(METADATA)
+# Use timeit to measure the execution time of each function
+# We use lambdas to call functions with the prepared arguments
+blinding_time = timeit.timeit(lambda: blind_message(message, user.issuer_pubkey), number=N_RUNS)
+signing_time = timeit.timeit(lambda: raw_blind_sign(issuer.key, blinded_m), number=N_RUNS)
+unblinding_time = timeit.timeit(lambda: unblind_signature(blinded_sig, r, user.issuer_pubkey), number=N_RUNS)
+verification_time = timeit.timeit(lambda: verifier.verify_signature(message, signature), number=N_RUNS)
+encryption_time = timeit.timeit(lambda: encrypt_metadata(metadata), number=N_RUNS)
+decryption_time = timeit.timeit(lambda: decrypt_metadata(secret_key, enc_meta_for_user), number=N_RUNS)
 
-# 6. Metadata decryption
-enc = encrypt_metadata(METADATA)
-def bench_decrypt():
-    decrypt_metadata(enc)
-
-# Run benchmarks
-if __name__ == "__main__":
-    iterations = 100
-    for name, fn in [
-        ("blinding", bench_blind),
-        ("signing", bench_sign),
-        ("unblinding", bench_unblind),
-        ("verification", bench_verify),
-        ("enc. metadata", bench_encrypt),
-        ("dec. metadata", bench_decrypt),
-    ]:
-        t = timeit.timeit(fn, number=iterations)
-        print(f"{name:15s}: {t/iterations*1e3:.3f} ms/op")
+# --- RESULTS ---
+print("--- Benchmark Results ---")
+print(f"Average over {N_RUNS} runs (2048-bit RSA)\n")
+print(f"{'Operation':<20} | {'Time per op (ms)':>20}")
+print("-" * 44)
+# Convert total time to average time per operation in milliseconds
+print(f"{'Blinding':<20} | {blinding_time / N_RUNS * 1000:>20.3f}")
+print(f"{'Signing':<20} | {signing_time / N_RUNS * 1000:>20.3f}")
+print(f"{'Unblinding':<20} | {unblinding_time / N_RUNS * 1000:>20.3f}")
+print(f"{'Verification':<20} | {verification_time / N_RUNS * 1000:>20.3f}")
+print(f"{'Encrypt Metadata':<20} | {encryption_time / N_RUNS * 1000:>20.3f}")
+print(f"{'Decrypt Metadata':<20} | {decryption_time / N_RUNS * 1000:>20.3f}")
