@@ -92,6 +92,6 @@ if __name__ == "__main__":
 
     print("\n--- FINAL AUDIT RESULT ---")
     if is_valid:
-        print("✅ SUCCESS: Token signature is valid AND metadata is authentic and linked correctly.")
+        print("SUCCESS: Token signature is valid AND metadata is authentic and linked correctly.")
     else:
-        print("❌ FAILURE: Token or metadata is invalid.")
+        print("FAILURE: Token or metadata is invalid.")
