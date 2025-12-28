@@ -77,4 +77,4 @@ benchmark.py
 | Generative AI (ChatGPT)                             | Rapid scaffolding of code, LaTeX & documentation |
 
 ## 📄 License & Citation
-Feel free to fork and build upon this prototype. If you reference this work, please cite as “Anonymous Tokens with Private Metadata Bit, RPTU project.”
+Feel free to fork and build upon this prototype.
